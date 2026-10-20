@@ -1,14 +1,14 @@
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
-const SqliteStore = require('better-sqlite3-session-store')(session);
+const MemoryStore = require('memorystore')(session);
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 
-const db = require('./database');
+const { initDb, getDb } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -44,15 +44,17 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(uploadsDir));
 
-// Session store using better-sqlite3 (no separate sqlite3 native module needed)
-const sessionDb = require('./database');
+// In-memory session store (works on both local and Vercel)
 app.use(session({
-  store: new SqliteStore({ client: sessionDb, expired: { clear: true, intervalMs: 900000 } }),
+  store: new MemoryStore({ checkPeriod: 86400000 }),
   secret: process.env.SESSION_SECRET || 'hudumadesk_secret',
   resave: false,
   saveUninitialized: false,
   cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 } // 7 days
 }));
+
+// DB accessor helper used by all route handlers
+function db() { return getDb(); }
 
 // ─── CONSTANTS ──────────────────────────────────────────────────────────────────
 const SUB_COUNTIES = [
@@ -70,7 +72,7 @@ const STATUSES = ['Pending', 'In Progress', 'Resolved', 'Rejected'];
 // Generate ticket ID
 function generateTicketId() {
   const year = new Date().getFullYear();
-  const count = db.prepare('SELECT COUNT(*) as cnt FROM requests').get().cnt + 1;
+  const count = db().prepare('SELECT COUNT(*) as cnt FROM requests').get().cnt + 1;
   return `MRG-${year}-${String(count).padStart(4, '0')}`;
 }
 
@@ -111,11 +113,11 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    const existing = db().prepare('SELECT id FROM users WHERE email = ?').get(email);
     if (existing) return res.status(409).json({ error: 'Email already registered' });
 
     const hash = await bcrypt.hash(password, 10);
-    const result = db.prepare(`
+    const result = db().prepare(`
       INSERT INTO users (name, email, password, phone, id_number)
       VALUES (?, ?, ?, ?, ?)
     `).run(name, email.toLowerCase(), hash, phone || null, id_number || null);
@@ -137,7 +139,7 @@ app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase());
+    const user = db().prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase());
     if (!user) return res.status(401).json({ error: 'Invalid email or password' });
 
     const valid = await bcrypt.compare(password, user.password);
@@ -162,7 +164,7 @@ app.post('/api/auth/logout', (req, res) => {
 // Session check
 app.get('/api/auth/me', (req, res) => {
   if (!req.session.userId) return res.json({ authenticated: false });
-  const user = db.prepare('SELECT id, name, email, phone, role, created_at FROM users WHERE id = ?')
+  const user = db().prepare('SELECT id, name, email, phone, role, created_at FROM users WHERE id = ?')
     .get(req.session.userId);
   res.json({ authenticated: true, user });
 });
@@ -186,20 +188,20 @@ app.post('/api/requests', requireAuth, upload.single('image'), (req, res) => {
     const ticketId = generateTicketId();
     const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
 
-    const result = db.prepare(`
+    const result = db().prepare(`
       INSERT INTO requests (ticket_id, citizen_id, category, sub_county, ward, location, description, image_path, priority)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(ticketId, req.session.userId, category, sub_county, ward || null, location, description, imagePath, priority || 'Normal');
 
     // Log initial status
-    db.prepare(`
+    db().prepare(`
       INSERT INTO status_history (request_id, new_status, note, changed_by)
       VALUES (?, ?, ?, ?)
     `).run(result.lastInsertRowid, 'Pending', 'Request submitted', req.session.userId);
 
     // Create notification for admins
-    const admins = db.prepare("SELECT id FROM users WHERE role = 'admin'").all();
-    const insertNotif = db.prepare(`
+    const admins = db().prepare("SELECT id FROM users WHERE role = 'admin'").all();
+    const insertNotif = db().prepare(`
       INSERT INTO notifications (user_id, request_id, message)
       VALUES (?, ?, ?)
     `);
@@ -227,8 +229,8 @@ app.get('/api/requests/my', requireAuth, (req, res) => {
   query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
   params.push(parseInt(limit), parseInt(offset));
 
-  const requests = db.prepare(query).all(...params);
-  const total = db.prepare(`SELECT COUNT(*) as cnt FROM requests WHERE citizen_id = ?${status ? ' AND status = ?' : ''}`)
+  const requests = db().prepare(query).all(...params);
+  const total = db().prepare(`SELECT COUNT(*) as cnt FROM requests WHERE citizen_id = ?${status ? ' AND status = ?' : ''}`)
     .get(...(status ? [req.session.userId, status] : [req.session.userId])).cnt;
 
   res.json({ requests, total, page: parseInt(page), totalPages: Math.ceil(total / limit) });
@@ -236,7 +238,7 @@ app.get('/api/requests/my', requireAuth, (req, res) => {
 
 // Get single request (citizen must own it, or admin)
 app.get('/api/requests/:id', requireAuth, (req, res) => {
-  const request = db.prepare('SELECT r.*, u.name as citizen_name, u.email as citizen_email FROM requests r JOIN users u ON r.citizen_id = u.id WHERE r.id = ?')
+  const request = db().prepare('SELECT r.*, u.name as citizen_name, u.email as citizen_email FROM requests r JOIN users u ON r.citizen_id = u.id WHERE r.id = ?')
     .get(req.params.id);
 
   if (!request) return res.status(404).json({ error: 'Request not found' });
@@ -244,7 +246,7 @@ app.get('/api/requests/:id', requireAuth, (req, res) => {
     return res.status(403).json({ error: 'Access denied' });
   }
 
-  const history = db.prepare(`
+  const history = db().prepare(`
     SELECT sh.*, u.name as changed_by_name FROM status_history sh
     LEFT JOIN users u ON sh.changed_by = u.id
     WHERE sh.request_id = ? ORDER BY sh.changed_at ASC
@@ -255,14 +257,14 @@ app.get('/api/requests/:id', requireAuth, (req, res) => {
 
 // Public ticket tracking (no auth needed)
 app.get('/api/track/:ticketId', (req, res) => {
-  const request = db.prepare(`
+  const request = db().prepare(`
     SELECT id, ticket_id, category, sub_county, ward, location, status, priority, created_at, updated_at
     FROM requests WHERE ticket_id = ?
   `).get(req.params.ticketId.toUpperCase());
 
   if (!request) return res.status(404).json({ error: 'Ticket not found' });
 
-  const history = db.prepare(`
+  const history = db().prepare(`
     SELECT sh.new_status, sh.note, sh.changed_at FROM status_history sh
     WHERE sh.request_id = ? ORDER BY sh.changed_at ASC
   `).all(request.id);
@@ -296,8 +298,8 @@ app.get('/api/admin/requests', requireAdmin, (req, res) => {
     ${whereStr} ORDER BY r.created_at DESC LIMIT ? OFFSET ?
   `;
 
-  const requests = db.prepare(query).all(...params, parseInt(limit), parseInt(offset));
-  const total = db.prepare(`SELECT COUNT(*) as cnt FROM requests r JOIN users u ON r.citizen_id = u.id ${whereStr}`)
+  const requests = db().prepare(query).all(...params, parseInt(limit), parseInt(offset));
+  const total = db().prepare(`SELECT COUNT(*) as cnt FROM requests r JOIN users u ON r.citizen_id = u.id ${whereStr}`)
     .get(...params).cnt;
 
   res.json({ requests, total, page: parseInt(page), totalPages: Math.ceil(total / limit) });
@@ -310,19 +312,19 @@ app.patch('/api/admin/requests/:id/status', requireAdmin, (req, res) => {
     return res.status(400).json({ error: 'Invalid status' });
   }
 
-  const request = db.prepare('SELECT * FROM requests WHERE id = ?').get(req.params.id);
+  const request = db().prepare('SELECT * FROM requests WHERE id = ?').get(req.params.id);
   if (!request) return res.status(404).json({ error: 'Request not found' });
 
-  db.prepare('UPDATE requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+  db().prepare('UPDATE requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
     .run(status, req.params.id);
 
-  db.prepare(`
+  db().prepare(`
     INSERT INTO status_history (request_id, old_status, new_status, note, changed_by)
     VALUES (?, ?, ?, ?, ?)
   `).run(req.params.id, request.status, status, note || null, req.session.userId);
 
   // Notify citizen
-  db.prepare(`INSERT INTO notifications (user_id, request_id, message) VALUES (?, ?, ?)`)
+  db().prepare(`INSERT INTO notifications (user_id, request_id, message) VALUES (?, ?, ?)`)
     .run(request.citizen_id, request.id,
       `Your request ${request.ticket_id} status updated to: ${status}`);
 
@@ -331,15 +333,15 @@ app.patch('/api/admin/requests/:id/status', requireAdmin, (req, res) => {
 
 // Analytics
 app.get('/api/admin/analytics', requireAdmin, (req, res) => {
-  const statusCounts = db.prepare(`
+  const statusCounts = db().prepare(`
     SELECT status, COUNT(*) as count FROM requests GROUP BY status
   `).all();
 
-  const categoryCounts = db.prepare(`
+  const categoryCounts = db().prepare(`
     SELECT category, COUNT(*) as count FROM requests GROUP BY category ORDER BY count DESC
   `).all();
 
-  const subCountyCounts = db.prepare(`
+  const subCountyCounts = db().prepare(`
     SELECT sub_county, COUNT(*) as total,
       SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) as resolved,
       SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) as pending,
@@ -347,13 +349,13 @@ app.get('/api/admin/analytics', requireAdmin, (req, res) => {
     FROM requests GROUP BY sub_county ORDER BY total DESC
   `).all();
 
-  const monthly = db.prepare(`
+  const monthly = db().prepare(`
     SELECT strftime('%Y-%m', created_at) as month, COUNT(*) as count
     FROM requests WHERE created_at >= date('now', '-6 months')
     GROUP BY month ORDER BY month
   `).all();
 
-  const totals = db.prepare(`
+  const totals = db().prepare(`
     SELECT
       COUNT(*) as total,
       SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) as pending,
@@ -363,7 +365,7 @@ app.get('/api/admin/analytics', requireAdmin, (req, res) => {
     FROM requests
   `).get();
 
-  const recentActivity = db.prepare(`
+  const recentActivity = db().prepare(`
     SELECT sh.*, r.ticket_id, u.name as changed_by_name
     FROM status_history sh
     JOIN requests r ON sh.request_id = r.id
@@ -376,7 +378,7 @@ app.get('/api/admin/analytics', requireAdmin, (req, res) => {
 
 // Get all citizens
 app.get('/api/admin/citizens', requireAdmin, (req, res) => {
-  const citizens = db.prepare(`
+  const citizens = db().prepare(`
     SELECT u.id, u.name, u.email, u.phone, u.created_at,
       COUNT(r.id) as total_requests,
       SUM(CASE WHEN r.status = 'Resolved' THEN 1 ELSE 0 END) as resolved
@@ -390,7 +392,7 @@ app.get('/api/admin/citizens', requireAdmin, (req, res) => {
 
 // Export CSV
 app.get('/api/admin/export', requireAdmin, (req, res) => {
-  const requests = db.prepare(`
+  const requests = db().prepare(`
     SELECT r.ticket_id, u.name as citizen, u.email, u.phone,
       r.category, r.sub_county, r.ward, r.location, r.description,
       r.priority, r.status, r.created_at, r.updated_at
@@ -415,32 +417,38 @@ app.get('/api/admin/export', requireAdmin, (req, res) => {
 
 // Notifications
 app.get('/api/notifications', requireAuth, (req, res) => {
-  const notifs = db.prepare(`
+  const notifs = db().prepare(`
     SELECT n.*, r.ticket_id FROM notifications n
     LEFT JOIN requests r ON n.request_id = r.id
     WHERE n.user_id = ? ORDER BY n.created_at DESC LIMIT 20
   `).all(req.session.userId);
 
-  const unread = db.prepare('SELECT COUNT(*) as cnt FROM notifications WHERE user_id = ? AND is_read = 0')
+  const unread = db().prepare('SELECT COUNT(*) as cnt FROM notifications WHERE user_id = ? AND is_read = 0')
     .get(req.session.userId).cnt;
 
   res.json({ notifications: notifs, unread });
 });
 
 app.patch('/api/notifications/read', requireAuth, (req, res) => {
-  db.prepare('UPDATE notifications SET is_read = 1 WHERE user_id = ?').run(req.session.userId);
+  db().prepare('UPDATE notifications SET is_read = 1 WHERE user_id = ?').run(req.session.userId);
   res.json({ success: true });
 });
 
-// ─── START SERVER ───────────────────────────────────────────────────────────────
-// Only start the HTTP server when running locally (not on Vercel serverless)
-if (!process.env.VERCEL) {
-  app.listen(PORT, () => {
-    console.log(`\n🏛️  HudumaDesk is running at http://localhost:${PORT}`);
-    console.log(`   Admin login: admin@muranga.go.ke / admin123`);
-    console.log(`   Demo citizen: john@example.com / citizen123\n`);
-  });
-}
+// ─── BOOTSTRAP ───────────────────────────────────────────────────────────────────
+// Initialize DB, then start (local) or export (Vercel)
+initDb().then(() => {
+  if (!process.env.VERCEL) {
+    app.listen(PORT, () => {
+      console.log(`\n🏛️  HudumaDesk is running at http://localhost:${PORT}`);
+      console.log(`   Admin login: admin@muranga.go.ke / admin123`);
+      console.log(`   Demo citizen: john@example.com / citizen123\n`);
+    });
+  }
+}).catch(err => {
+  console.error('Failed to initialise database:', err);
+  process.exit(1);
+});
 
 // Export for Vercel serverless
 module.exports = app;
+
