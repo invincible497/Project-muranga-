@@ -14,7 +14,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ─── ENSURE UPLOAD DIR ──────────────────────────────────────────────────────────
-const uploadsDir = path.join(__dirname, 'uploads');
+const IS_VERCEL = process.env.VERCEL === '1';
+const uploadsDir = IS_VERCEL ? '/tmp/uploads' : path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 // ─── MULTER CONFIG ──────────────────────────────────────────────────────────────
@@ -432,8 +433,14 @@ app.patch('/api/notifications/read', requireAuth, (req, res) => {
 });
 
 // ─── START SERVER ───────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`\n🏛️  HudumaDesk is running at http://localhost:${PORT}`);
-  console.log(`   Admin login: admin@muranga.go.ke / admin123`);
-  console.log(`   Demo citizen: john@example.com / citizen123\n`);
-});
+// Only start the HTTP server when running locally (not on Vercel serverless)
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`\n🏛️  HudumaDesk is running at http://localhost:${PORT}`);
+    console.log(`   Admin login: admin@muranga.go.ke / admin123`);
+    console.log(`   Demo citizen: john@example.com / citizen123\n`);
+  });
+}
+
+// Export for Vercel serverless
+module.exports = app;
