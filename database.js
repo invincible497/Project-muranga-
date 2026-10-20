@@ -20,7 +20,11 @@ function getDb() {
 async function initDb() {
   if (_db) return _db;
 
-  SQL = await initSqlJs();
+  SQL = await initSqlJs({
+    // Tell sql.js exactly where to find the WASM file.
+    // On Vercel the module directory is preserved, so resolve relative to sql.js/dist.
+    locateFile: file => require('path').join(require.resolve('sql.js'), '..', '..', 'dist', file)
+  });
 
   // Load from disk if exists, otherwise fresh DB
   if (fs.existsSync(DB_PATH)) {
