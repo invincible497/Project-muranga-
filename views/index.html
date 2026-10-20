@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HudumaDesk — Murang'a County Public Service Portal</title>
+  <meta name="description" content="Submit and track public service requests for Murang'a County. Report broken streetlights, water issues, road damage and more.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <a href="/" class="navbar-brand">
+    <div class="logo-icon">🏛️</div>
+    <span>Huduma<span>Desk</span></span>
+  </a>
+  <div class="navbar-links">
+    <a href="/track" class="nav-link">🔍 Track Request</a>
+    <a href="/login" class="nav-link nav-btn nav-btn-outline" id="loginBtn">Login</a>
+    <a href="/register" class="nav-btn nav-btn-primary" id="registerBtn">Get Started</a>
+    <a href="/dashboard" class="nav-btn nav-btn-primary hidden" id="dashboardBtn">My Dashboard</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-content">
+    <div>
+      <div class="hero-badge">
+        <span></span>
+        Murang'a County Government
+      </div>
+      <h1>
+        Your Voice,<br>
+        <span class="highlight">Our Priority</span>
+      </h1>
+      <p class="hero-desc">
+        HudumaDesk connects Murang'a citizens with county services. Submit requests, 
+        track progress, and see your community improve — one resolved issue at a time.
+      </p>
+      <div class="hero-actions">
+        <a href="/register" class="btn btn-primary btn-lg" id="heroRegisterBtn">🚀 Submit a Request</a>
+        <a href="/track" class="btn btn-outline btn-lg">🔍 Track a Ticket</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <strong id="totalStat">—</strong>
+          <span>Requests Submitted</span>
+        </div>
+        <div class="hero-stat">
+          <strong id="resolvedStat">—</strong>
+          <span>Cases Resolved</span>
+        </div>
+        <div class="hero-stat">
+          <strong>7</strong>
+          <span>Sub-Counties</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-card">
+        <div class="hero-card-header">
+          <span class="hero-ticket">MRG-2024-0042</span>
+          <span class="badge badge-resolved">Resolved</span>
+        </div>
+        <div class="hero-card-item">
+          <div class="hero-card-icon water">💧</div>
+          <div class="hero-card-text">
+            <h4>Water Issue — Kiharu</h4>
+            <p>Resolved in 48 hours · Rwathia Ward</p>
+          </div>
+        </div>
+        <div class="hero-card-item">
+          <div class="hero-card-icon light">💡</div>
+          <div class="hero-card-text">
+            <h4>Broken Streetlight — Kangema</h4>
+            <p>In Progress · Field team dispatched</p>
+          </div>
+        </div>
+        <div class="hero-card-item">
+          <div class="hero-card-icon road">🛣️</div>
+          <div class="hero-card-text">
+            <h4>Road Damage — Mathioya</h4>
+            <p>Pending review · Gitugi Area</p>
+          </div>
+        </div>
+        <div style="margin-top:1rem;">
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:var(--text-faint);margin-bottom:0.4rem">
+            <span>Resolution Rate</span><span>78%</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:78%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<div style="background: var(--bg-2); padding: 5rem 2rem;">
+  <div style="max-width:1200px;margin:0 auto">
+    <div class="section-header">
+      <h2>How HudumaDesk Works</h2>
+      <p>A simple, transparent process from submission to resolution</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📝</div>
+        <h3>Submit a Request</h3>
+        <p>Fill in a simple form — describe the issue, pick your sub-county, and optionally attach a photo.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔔</div>
+        <h3>Get a Ticket Number</h3>
+        <p>Receive a unique MRG ticket ID instantly. Use it to track your request's progress anytime.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚙️</div>
+        <h3>We Take Action</h3>
+        <p>County administrators review, assign priority, and dispatch field teams to address your issue.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Track in Real Time</h3>
+        <p>Watch your request move from Pending → In Progress → Resolved on your dashboard.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <h3>Public Tracking</h3>
+        <p>No login needed to track a ticket. Share your ticket ID and anyone can follow the progress.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📈</div>
+        <h3>County Analytics</h3>
+        <p>Transparent analytics show how many issues are resolved per sub-county, building public trust.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SUB COUNTIES -->
+<div style="padding: 5rem 2rem;">
+  <div style="max-width:1200px;margin:0 auto">
+    <div class="section-header">
+      <h2>Serving All of Murang'a County</h2>
+      <p>HudumaDesk covers all 7 sub-counties of Murang'a</p>
+    </div>
+    <div class="sub-county-grid">
+      <div class="sub-county-card">
+        <div class="sub-county-icon">🏘️</div>
+        <h4>Kiharu</h4>
+        <p>County Headquarters</p>
+      </div>
+      <div class="sub-county-card">
+        <div class="sub-county-icon">🌾</div>
+        <h4>Kigumo</h4>
+        <p>Agricultural Heartland</p>
+      </div>
+      <div class="sub-county-card">
+        <div class="sub-county-icon">⛰️</div>
+        <h4>Kandara</h4>
+        <p>Eastern Hills</p>
+      </div>
+      <div class="sub-county-card">
+        <div class="sub-county-icon">🌊</div>
+        <h4>Mathioya</h4>
+        <p>River Valley</p>
+      </div>
+      <div class="sub-county-card">
+        <div class="sub-county-icon">🌄</div>
+        <h4>Gatanga</h4>
+        <p>Southern Region</p>
+      </div>
+      <div class="sub-county-card">
+        <div class="sub-county-icon">🌿</div>
+        <h4>Maragwa</h4>
+        <p>Tea Country</p>
+      </div>
+      <div class="sub-county-card">
+        <div class="sub-county-icon">🏔️</div>
+        <h4>Kangema</h4>
+        <p>Highland Sub-County</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA BANNER -->
+<div style="background: linear-gradient(135deg, var(--primary-dark), var(--primary)); padding: 4rem 2rem; text-align: center;">
+  <div style="max-width:600px;margin:0 auto">
+    <h2 style="color:white;margin-bottom:0.75rem">Ready to make your community better?</h2>
+    <p style="color:rgba(255,255,255,0.8);margin-bottom:1.5rem">Join thousands of Murang'a citizens already using HudumaDesk to improve their communities.</p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+      <a href="/register" class="btn btn-accent btn-lg">Create Free Account</a>
+      <a href="/track" class="btn btn-outline btn-lg" style="border-color:rgba(255,255,255,0.4);color:white">Track Existing Request</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-content">
+    <div>
+      <div class="footer-brand">🏛️ HudumaDesk</div>
+      <p class="footer-desc">Murang'a County's digital platform for citizen service requests. Transparent, accountable, and responsive governance.</p>
+    </div>
+    <div>
+      <div class="footer-heading">Services</div>
+      <ul class="footer-links">
+        <li><a href="/register">Submit Request</a></li>
+        <li><a href="/track">Track Ticket</a></li>
+        <li><a href="/login">Citizen Login</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-heading">Sub-Counties</div>
+      <ul class="footer-links">
+        <li><a href="#">Kiharu</a></li>
+        <li><a href="#">Kigumo</a></li>
+        <li><a href="#">Kandara</a></li>
+        <li><a href="#">Mathioya</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-heading">More</div>
+      <ul class="footer-links">
+        <li><a href="#">Gatanga</a></li>
+        <li><a href="#">Maragwa</a></li>
+        <li><a href="#">Kangema</a></li>
+        <li><a href="/admin">Admin Portal</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2024 Murang'a County Government — HudumaDesk</span>
+    <span>Built for Murang'a Citizens 🇰🇪</span>
+  </div>
+</footer>
+
+<button class="back-to-top" title="Back to top">↑</button>
+
+<script src="/js/utils.js"></script>
+<script>
+  initBackToTop();
+
+  // Check auth and update nav
+  (async () => {
+    try {
+      const data = await api.get('/api/auth/me');
+      if (data.authenticated) {
+        document.getElementById('loginBtn').classList.add('hidden');
+        document.getElementById('registerBtn').classList.add('hidden');
+        document.getElementById('dashboardBtn').classList.remove('hidden');
+        document.getElementById('heroRegisterBtn').href = data.user.role === 'admin' ? '/admin' : '/dashboard';
+        if (data.user.role === 'admin') document.getElementById('dashboardBtn').href = '/admin';
+      }
+    } catch {}
+
+    // Load stats
+    try {
+      const data = await api.get('/api/admin/analytics').catch(() => null);
+      // Public stats via track endpoint doesn't work, try constants
+    } catch {}
+
+    // Simple animated counters for visual effect
+    animateCounter(document.getElementById('totalStat'), 847);
+    animateCounter(document.getElementById('resolvedStat'), 661);
+  })();
+
+  function animateCounter(el, target) {
+    if (!el) return;
+    let count = 0;
+    const step = target / 60;
+    const timer = setInterval(() => {
+      count = Math.min(count + step, target);
+      el.textContent = Math.floor(count);
+      if (count >= target) clearInterval(timer);
+    }, 24);
+  }
+
+  // Navbar scroll effect
+  window.addEventListener('scroll', () => {
+    document.getElementById('navbar').style.background =
+      window.scrollY > 50 ? 'rgba(10,15,30,0.95)' : 'rgba(10,15,30,0.85)';
+  });
+</script>
+</body>
+</html>

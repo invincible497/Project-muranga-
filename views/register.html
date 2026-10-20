@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register — HudumaDesk</title>
+  <meta name="description" content="Create a free HudumaDesk account to submit and track public service requests in Murang'a County.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card" style="max-width:500px">
+    <a href="/" class="auth-logo">
+      <div class="logo-icon">🏛️</div>
+      <span>HudumaDesk</span>
+    </a>
+
+    <h1 class="auth-title">Create your account</h1>
+    <p class="auth-subtitle">Join Murang'a County's civic platform — it's free</p>
+
+    <form id="registerForm" novalidate>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="name">Full Name <span class="required">*</span></label>
+          <input type="text" id="name" class="form-control" placeholder="John Mwangi" required autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="phone">Phone Number</label>
+          <input type="tel" id="phone" class="form-control" placeholder="+254 7XX XXX XXX" autocomplete="tel">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address <span class="required">*</span></label>
+          <input type="email" id="email" class="form-control" placeholder="your@email.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="id_number">National ID (Optional)</label>
+          <input type="text" id="id_number" class="form-control" placeholder="12345678" maxlength="8">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password <span class="required">*</span></label>
+        <div class="input-group">
+          <input type="password" id="password" class="form-control" placeholder="Min 6 characters" required autocomplete="new-password">
+          <button type="button" class="input-group-btn" id="togglePasswordReg">👁️</button>
+        </div>
+        <div class="form-hint">Must be at least 6 characters long</div>
+        <!-- Strength meter -->
+        <div style="margin-top:0.5rem">
+          <div class="progress-bar" style="height:4px">
+            <div class="progress-fill" id="strengthBar" style="width:0%;background:var(--danger)"></div>
+          </div>
+          <div id="strengthLabel" style="font-size:0.75rem;color:var(--text-faint);margin-top:0.25rem"></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="confirmPassword">Confirm Password <span class="required">*</span></label>
+        <div class="input-group">
+          <input type="password" id="confirmPassword" class="form-control" placeholder="Repeat your password" required autocomplete="new-password">
+          <span class="input-group-btn" id="matchIndicator"></span>
+        </div>
+      </div>
+
+      <div id="errorMsg" class="form-error hidden" style="padding:0.75rem;background:rgba(239,68,68,0.1);border-radius:var(--radius);margin-bottom:1rem;font-size:0.88rem"></div>
+
+      <button type="submit" class="btn btn-primary w-full" id="submitBtn">
+        <span id="btnText">Create Account</span>
+        <span id="btnSpinner" class="hidden">⏳</span>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      Already have an account? <a href="/login">Sign in</a>
+    </div>
+
+    <div style="margin-top:1.5rem;padding:1rem;background:var(--surface);border-radius:var(--radius);font-size:0.8rem;color:var(--text-muted)">
+      🔒 Your data is secure. We only use it to manage your requests and never share it with third parties.
+    </div>
+  </div>
+</div>
+
+<script src="/js/utils.js"></script>
+<script>
+  // Redirect if already logged in
+  (async () => {
+    try {
+      const data = await api.get('/api/auth/me');
+      if (data.authenticated) {
+        window.location.href = data.user.role === 'admin' ? '/admin' : '/dashboard';
+      }
+    } catch {}
+  })();
+
+  // Password toggle
+  document.getElementById('togglePasswordReg').addEventListener('click', () => {
+    const pw = document.getElementById('password');
+    pw.type = pw.type === 'password' ? 'text' : 'password';
+    document.getElementById('togglePasswordReg').textContent = pw.type === 'password' ? '👁️' : '🙈';
+  });
+
+  // Password strength
+  document.getElementById('password').addEventListener('input', () => {
+    const pw = document.getElementById('password').value;
+    const bar = document.getElementById('strengthBar');
+    const label = document.getElementById('strengthLabel');
+    let strength = 0; let text = ''; let color = 'var(--danger)';
+    if (pw.length >= 6) strength++;
+    if (pw.length >= 10) strength++;
+    if (/[A-Z]/.test(pw)) strength++;
+    if (/[0-9]/.test(pw)) strength++;
+    if (/[^A-Za-z0-9]/.test(pw)) strength++;
+    const levels = [{l:0,'t':'','c':'var(--danger)'},{l:20,'t':'Very Weak','c':'var(--danger)'},{l:40,'t':'Weak','c':'var(--warning)'},{l:60,'t':'Fair','c':'#f97316'},{l:80,'t':'Strong','c':'var(--success)'},{l:100,'t':'Very Strong','c':'var(--primary-light)'}];
+    const lvl = levels[Math.min(strength, 5)];
+    bar.style.width = (strength * 20) + '%';
+    bar.style.background = lvl.c;
+    label.textContent = lvl.t;
+    label.style.color = lvl.c;
+  });
+
+  // Confirm password match
+  document.getElementById('confirmPassword').addEventListener('input', () => {
+    const pw = document.getElementById('password').value;
+    const cpw = document.getElementById('confirmPassword').value;
+    const ind = document.getElementById('matchIndicator');
+    if (!cpw) { ind.textContent = ''; return; }
+    ind.textContent = pw === cpw ? '✅' : '❌';
+  });
+
+  document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const phone = document.getElementById('phone').value.trim();
+    const id_number = document.getElementById('id_number').value.trim();
+    const errorMsg = document.getElementById('errorMsg');
+    const submitBtn = document.getElementById('submitBtn');
+
+    errorMsg.classList.add('hidden');
+
+    if (password !== confirmPassword) {
+      errorMsg.textContent = 'Passwords do not match.';
+      errorMsg.classList.remove('hidden');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    document.getElementById('btnText').textContent = 'Creating account…';
+    document.getElementById('btnSpinner').classList.remove('hidden');
+
+    try {
+      await api.post('/api/auth/register', { name, email, password, phone, id_number });
+      toast.show('Account created successfully! 🎉', 'success');
+      setTimeout(() => { window.location.href = '/dashboard'; }, 1000);
+    } catch (err) {
+      errorMsg.textContent = err.message;
+      errorMsg.classList.remove('hidden');
+      submitBtn.disabled = false;
+      document.getElementById('btnText').textContent = 'Create Account';
+      document.getElementById('btnSpinner').classList.add('hidden');
+    }
+  });
+</script>
+</body>
+</html>

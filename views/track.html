@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Track Request — HudumaDesk</title>
+  <meta name="description" content="Track your HudumaDesk public service request by ticket number. No login required.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <a href="/" class="navbar-brand">
+    <div class="logo-icon">🏛️</div>
+    <span>Huduma<span>Desk</span></span>
+  </a>
+  <div class="navbar-links">
+    <a href="/" class="nav-link">← Back to Home</a>
+    <a href="/login" class="nav-btn nav-btn-primary" id="navLoginBtn">Login</a>
+    <a href="/dashboard" class="nav-btn nav-btn-primary hidden" id="navDashBtn">My Dashboard</a>
+  </div>
+</nav>
+
+<main style="padding-top:68px;min-height:100vh;background:radial-gradient(ellipse at 50% 0%, rgba(15,118,110,0.12) 0%, transparent 60%),var(--bg)">
+
+  <!-- HERO -->
+  <div style="text-align:center;padding:4rem 2rem 2rem">
+    <div style="font-size:3.5rem;margin-bottom:1rem">🔍</div>
+    <h1 style="font-size:2rem;margin-bottom:0.75rem">Track Your Request</h1>
+    <p style="max-width:500px;margin:0 auto">Enter your Murang'a ticket ID to check the real-time status of your service request. No account needed.</p>
+  </div>
+
+  <!-- SEARCH FORM -->
+  <div style="max-width:600px;margin:0 auto;padding:0 1rem">
+    <div class="track-form">
+      <form id="trackForm" novalidate>
+        <label class="form-label" for="ticketInput">Ticket ID <span class="required">*</span></label>
+        <div style="display:flex;gap:0.75rem">
+          <input type="text" id="ticketInput" class="form-control"
+            placeholder="e.g. MRG-2024-0001"
+            style="text-transform:uppercase;font-family:var(--font-mono);letter-spacing:0.05em;font-size:1rem"
+            required maxlength="20">
+          <button type="submit" class="btn btn-primary" id="trackBtn" style="flex-shrink:0">
+            <span id="trackBtnText">Track</span>
+          </button>
+        </div>
+        <div class="form-hint">Format: MRG-YYYY-NNNN (e.g. MRG-2024-0001)</div>
+      </form>
+
+      <div id="trackError" class="form-error hidden" style="margin-top:1rem;padding:0.75rem;background:rgba(239,68,68,0.1);border-radius:var(--radius)"></div>
+
+      <!-- RESULT -->
+      <div id="trackResult" class="hidden track-result">
+        <div style="border-top:1px solid var(--border);margin-top:1.5rem;padding-top:1.5rem">
+
+          <!-- Status bar -->
+          <div class="track-status-bar">
+            <div class="track-step" id="step-Pending">
+              <div class="track-step-circle">📨</div>
+              <div class="track-step-label">Submitted</div>
+            </div>
+            <div class="track-step" id="step-In Progress">
+              <div class="track-step-circle">⚙️</div>
+              <div class="track-step-label">In Progress</div>
+            </div>
+            <div class="track-step" id="step-Resolved">
+              <div class="track-step-circle">✅</div>
+              <div class="track-step-label">Resolved</div>
+            </div>
+          </div>
+
+          <!-- Ticket info -->
+          <div style="background:var(--surface);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1.25rem">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem">
+              <div>
+                <div style="font-family:var(--font-mono);font-size:0.85rem;color:var(--primary-light);margin-bottom:0.25rem" id="resultTicketId"></div>
+                <div style="font-size:1.1rem;font-weight:700" id="resultCategory"></div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.4rem">
+                <div id="resultStatus"></div>
+                <div id="resultPriority"></div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+              <div>
+                <div style="font-size:0.72rem;color:var(--text-faint)">Sub-County</div>
+                <div style="font-weight:600;font-size:0.9rem" id="resultSubCounty"></div>
+              </div>
+              <div>
+                <div style="font-size:0.72rem;color:var(--text-faint)">Location</div>
+                <div style="font-weight:600;font-size:0.9rem" id="resultLocation"></div>
+              </div>
+              <div>
+                <div style="font-size:0.72rem;color:var(--text-faint)">Submitted</div>
+                <div style="font-weight:600;font-size:0.9rem" id="resultDate"></div>
+              </div>
+              <div>
+                <div style="font-size:0.72rem;color:var(--text-faint)">Last Updated</div>
+                <div style="font-weight:600;font-size:0.9rem" id="resultUpdated"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- History -->
+          <div>
+            <div style="font-size:0.8rem;font-weight:700;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.75rem">Status History</div>
+            <div class="timeline" id="resultHistory"></div>
+          </div>
+
+          <!-- Share -->
+          <div style="margin-top:1.5rem;text-align:center">
+            <button class="btn btn-outline btn-sm" onclick="copyTicketUrl()">🔗 Copy tracking link</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent searches hint -->
+    <div class="card mt-3" id="recentSearchCard" style="display:none">
+      <div class="card-title mb-1" style="font-size:0.9rem">🕒 Recent Searches</div>
+      <div id="recentSearchList" style="display:flex;flex-wrap:wrap;gap:0.5rem"></div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div style="max-width:600px;margin:3rem auto 4rem;padding:0 1rem">
+    <h2 style="font-size:1.2rem;margin-bottom:1.25rem;text-align:center">Frequently Asked Questions</h2>
+    <div style="display:flex;flex-direction:column;gap:0.75rem">
+      <details style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;cursor:pointer">
+        <summary style="font-weight:600;font-size:0.9rem;list-style:none">Where do I find my ticket ID?</summary>
+        <p style="margin-top:0.75rem;font-size:0.85rem">Your ticket ID was shown immediately after submitting your request and also sent to your dashboard. It starts with <code style="font-family:var(--font-mono);color:var(--primary-light)">MRG-</code> followed by the year and a 4-digit number.</p>
+      </details>
+      <details style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;cursor:pointer">
+        <summary style="font-weight:600;font-size:0.9rem;list-style:none">How long does it take to resolve a request?</summary>
+        <p style="margin-top:0.75rem;font-size:0.85rem">Resolution time varies by category and complexity. Critical/safety issues are prioritised. You'll see status updates here and in your dashboard notifications.</p>
+      </details>
+      <details style="background:var(--bg-3);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;cursor:pointer">
+        <summary style="font-weight:600;font-size:0.9rem;list-style:none">What do the status badges mean?</summary>
+        <p style="margin-top:0.75rem;font-size:0.85rem"><strong>Pending</strong> — received, awaiting review. <strong>In Progress</strong> — being actively addressed. <strong>Resolved</strong> — issue has been fixed. <strong>Rejected</strong> — outside county jurisdiction or duplicate.</p>
+      </details>
+    </div>
+  </div>
+</main>
+
+<button class="back-to-top">↑</button>
+
+<script src="/js/utils.js"></script>
+<script>
+  initBackToTop();
+
+  // Check auth for nav
+  (async () => {
+    try {
+      const d = await api.get('/api/auth/me');
+      if (d.authenticated) {
+        document.getElementById('navLoginBtn').classList.add('hidden');
+        document.getElementById('navDashBtn').classList.remove('hidden');
+        if (d.user.role === 'admin') document.getElementById('navDashBtn').href = '/admin';
+      }
+    } catch {}
+  })();
+
+  // Load recent searches from localStorage
+  function loadRecentSearches() {
+    const recent = JSON.parse(localStorage.getItem('huduma_recent_searches') || '[]');
+    if (!recent.length) return;
+    const card = document.getElementById('recentSearchCard');
+    const list = document.getElementById('recentSearchList');
+    card.style.display = 'block';
+    list.innerHTML = recent.slice(0, 5).map(t => `
+      <button class="btn btn-outline btn-sm" onclick="trackTicket('${t}')">
+        <span style="font-family:var(--font-mono)">${t}</span>
+      </button>
+    `).join('');
+  }
+  loadRecentSearches();
+
+  function saveRecentSearch(ticketId) {
+    const recent = JSON.parse(localStorage.getItem('huduma_recent_searches') || '[]');
+    const updated = [ticketId, ...recent.filter(t => t !== ticketId)].slice(0, 5);
+    localStorage.setItem('huduma_recent_searches', JSON.stringify(updated));
+    loadRecentSearches();
+  }
+
+  // Auto-fill from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlTicket = urlParams.get('ticket');
+  if (urlTicket) {
+    document.getElementById('ticketInput').value = urlTicket.toUpperCase();
+    setTimeout(() => trackTicket(urlTicket), 200);
+  }
+
+  document.getElementById('trackForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const ticket = document.getElementById('ticketInput').value.trim().toUpperCase();
+    trackTicket(ticket);
+  });
+
+  document.getElementById('ticketInput').addEventListener('input', (e) => {
+    e.target.value = e.target.value.toUpperCase();
+  });
+
+  async function trackTicket(ticketId) {
+    if (!ticketId) return;
+    document.getElementById('ticketInput').value = ticketId;
+
+    const errEl = document.getElementById('trackError');
+    const resultEl = document.getElementById('trackResult');
+    const btn = document.getElementById('trackBtn');
+
+    errEl.classList.add('hidden');
+    resultEl.classList.add('hidden');
+    btn.disabled = true;
+    document.getElementById('trackBtnText').textContent = '⏳';
+
+    try {
+      const data = await api.get(`/api/track/${ticketId}`);
+      const r = data.request;
+
+      document.getElementById('resultTicketId').textContent = r.ticket_id;
+      document.getElementById('resultCategory').textContent = categoryIcon(r.category) + ' ' + r.category;
+      document.getElementById('resultStatus').innerHTML = statusBadge(r.status);
+      document.getElementById('resultPriority').innerHTML = priorityBadge(r.priority);
+      document.getElementById('resultSubCounty').textContent = r.sub_county + (r.ward ? ' · ' + r.ward : '');
+      document.getElementById('resultLocation').textContent = r.location;
+      document.getElementById('resultDate').textContent = fmtDate(r.created_at);
+      document.getElementById('resultUpdated').textContent = fmtDate(r.updated_at);
+
+      // Update steps
+      const steps = ['Pending', 'In Progress', 'Resolved'];
+      const stepIdx = steps.indexOf(r.status);
+      steps.forEach((step, i) => {
+        const el = document.getElementById(`step-${step}`);
+        if (!el) return;
+        el.classList.remove('done', 'active');
+        if (r.status === 'Rejected') {
+          // For rejected, just show submitted as done
+          if (i === 0) el.classList.add('done');
+        } else {
+          if (i < stepIdx) el.classList.add('done');
+          else if (i === stepIdx) el.classList.add('active');
+        }
+      });
+
+      // History
+      document.getElementById('resultHistory').innerHTML = data.history.map((h, i) => `
+        <div class="timeline-item ${i === data.history.length - 1 ? 'current' : ''}">
+          <div class="timeline-time">${fmtDate(h.changed_at)}</div>
+          <div class="timeline-status">${statusBadge(h.new_status)}</div>
+          ${h.note ? `<div class="timeline-note">💬 ${h.note}</div>` : ''}
+        </div>
+      `).join('');
+
+      resultEl.classList.remove('hidden');
+      saveRecentSearch(ticketId);
+      resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+      errEl.textContent = err.message.includes('not found')
+        ? `No request found with ticket ID "${ticketId}". Please check and try again.`
+        : err.message;
+      errEl.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      document.getElementById('trackBtnText').textContent = 'Track';
+    }
+  }
+
+  function copyTicketUrl() {
+    const ticket = document.getElementById('resultTicketId').textContent;
+    const url = `${window.location.origin}/track?ticket=${ticket}`;
+    navigator.clipboard.writeText(url).then(() => toast.show('Tracking link copied! 🔗', 'success'));
+  }
+</script>
+</body>
+</html>
